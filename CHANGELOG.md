@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Add an on-demand temperature refresh button for M700 cleaners. An OTP profile with no robot family now exposes the temperature sensor and button; the sensor stays unknown until the robot reports a reading.
+
 ## v1.0.26
 
 - Use vacuum `activity` instead of `state` for start and pause actions (Home Assistant 2026.x forward compatibility)

@@ -23,6 +23,7 @@ SIGNAL_API_STATUS = f"{DOMAIN}_API_SIGNAL"
 CONFIGURATION_URL = "https://www.maytronics.com/"
 
 PLATFORMS = [
+    Platform.BUTTON,
     Platform.SELECT,
     Platform.LIGHT,
     Platform.BINARY_SENSOR,
@@ -53,6 +54,7 @@ DYNAMIC_TYPE = "type"
 DYNAMIC_DESCRIPTION = "description"
 DYNAMIC_DESCRIPTION_JOYSTICK = "joystick"
 DYNAMIC_DESCRIPTION_TEMPERATURE = "temperature"
+WS_TEMPERATURE_LAST_UPDATE = "temperature_last_reported"
 DYNAMIC_TYPE_PWS_REQUEST = "pwsRequest"
 DYNAMIC_TYPE_IOT_RESPONSE = "iotResponse"
 DYNAMIC_CONTENT = "content"
@@ -325,6 +327,7 @@ DATA_KEY_CYCLE_COUNT = "Cycle Count"
 DATA_KEY_ROBOT_ERROR = "Robot Error"
 DATA_KEY_PWS_ERROR = "Power Supply Error"
 DATA_KEY_BATTERY = "Battery"
+DATA_KEY_REFRESH_TEMPERATURE = "Refresh Temperature"
 
 TRANSLATION_KEY_ERROR_INSTRUCTIONS = "state_attributes.instructions.state"
 ERROR_CLEAN_CODES = [0, 255]

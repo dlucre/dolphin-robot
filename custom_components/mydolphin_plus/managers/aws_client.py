@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import asyncio
-from datetime import datetime
+from datetime import datetime, timezone
 import json
 import logging
 import os
@@ -66,6 +66,7 @@ from ..common.consts import (
     DYNAMIC_DESCRIPTION_JOYSTICK,
     DYNAMIC_DESCRIPTION_TEMPERATURE,
     DYNAMIC_TYPE,
+    DYNAMIC_TYPE_IOT_RESPONSE,
     DYNAMIC_TYPE_PWS_REQUEST,
     LED_MODE_BLINKING,
     MQTT_MESSAGE_ENCODING,
@@ -76,6 +77,7 @@ from ..common.consts import (
     WS_DATA_TIMESTAMP,
     WS_DATA_VERSION,
     WS_LAST_UPDATE,
+    WS_TEMPERATURE_LAST_UPDATE,
 )
 from ..common.joystick_direction import JoystickDirection
 from ..common.power_supply_state import PowerSupplyState
@@ -438,7 +440,7 @@ class AWSClient:
 
                 if topic == self._topic_data.get_accepted:
                     if self._robot_family == RobotFamily.M700:
-                        self._read_temperature_and_in_water_details()
+                        self.request_temperature()
 
                 elif topic == self._topic_data.update_accepted:
                     desired = state.get(DATA_STATE_DESIRED)
@@ -472,6 +474,15 @@ class AWSClient:
             self.data[DATA_SECTION_DYNAMIC] = {}
 
         self.data[DATA_SECTION_DYNAMIC][message_type] = content
+
+        if (
+            message_type == DYNAMIC_TYPE_IOT_RESPONSE
+            and isinstance(content, dict)
+            and content.get(DYNAMIC_DESCRIPTION_TEMPERATURE) is not None
+        ):
+            self.data[WS_TEMPERATURE_LAST_UPDATE] = datetime.now(
+                timezone.utc
+            ).isoformat()
 
         if handler is not None:
             handler(message)
@@ -607,9 +618,15 @@ class AWSClient:
 
         self._send_dynamic_command(DYNAMIC_DESCRIPTION_JOYSTICK, request_data)
 
-    def _read_temperature_and_in_water_details(self):
+    def request_temperature(self):
+        """Ask the power supply for a fresh reading without starting a cycle."""
         motor_unit_serial = self._config_manager.motor_unit_serial
         serial_number = self._config_manager.serial_number
+
+        if not motor_unit_serial or not serial_number:
+            raise ValueError(
+                "Robot serial numbers are required for a temperature request"
+            )
 
         request_data = {
             DYNAMIC_CONTENT_SERIAL_NUMBER: serial_number,
