@@ -133,3 +133,20 @@ async def test_button_request_publishes_when_connected():
     await coordinator.async_request_temperature()
 
     assert requests == ["temperature"]
+
+
+@pytest.mark.asyncio
+async def test_missing_family_enables_automatic_temperature_requests():
+    """A missing OTP RobotFamily should still request temperature on each poll."""
+    client = AWSClient.__new__(AWSClient)
+
+    await client.update_api_data({})
+    assert client._robot_family == RobotFamily.ALL
+    assert client._robot_family_missing is True
+
+    await client.update_api_data({"Robot Family": "M700"})
+    assert client._robot_family == RobotFamily.M700
+    assert client._robot_family_missing is False
+
+    await client.update_api_data(None)
+    assert client._robot_family_missing is False

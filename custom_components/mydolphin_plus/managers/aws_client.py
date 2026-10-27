@@ -111,6 +111,7 @@ class AWSClient:
             self._config_manager = config_manager
             self._awsiot_id = awsiot_id
             self._robot_family = None
+            self._robot_family_missing = False
 
             self._api_data = {}
             self._data = {}
@@ -305,10 +306,13 @@ class AWSClient:
 
         if api_data is None:
             self._robot_family = RobotFamily.ALL
+            self._robot_family_missing = False
 
         else:
             robot_family_str = api_data.get(DATA_ROBOT_FAMILY)
             self._robot_family = RobotFamily.from_string(robot_family_str)
+            # The OTP profile omits RobotFamily, even for an M700.
+            self._robot_family_missing = robot_family_str is None
 
     async def update(self):
         try:
@@ -439,8 +443,14 @@ class AWSClient:
                 self._on_data_update_callback()
 
                 if topic == self._topic_data.get_accepted:
-                    if self._robot_family == RobotFamily.M700:
-                        self.request_temperature()
+                    if (
+                        self._robot_family == RobotFamily.M700
+                        or self._robot_family_missing
+                    ):
+                        try:
+                            self.request_temperature()
+                        except ValueError as ex:
+                            _LOGGER.debug(f"Temperature request skipped: {ex}")
 
                 elif topic == self._topic_data.update_accepted:
                     desired = state.get(DATA_STATE_DESIRED)
