@@ -498,8 +498,13 @@ class MyDolphinPlusCoordinator(DataUpdateCoordinator):
         return result
 
     def _get_temperature_data(self, _entity_description) -> dict | None:
-        dynamic = self.aws_data.get(DATA_SECTION_DYNAMIC, {})
-        iot_response = dynamic.get(DYNAMIC_TYPE_IOT_RESPONSE, {})
+        dynamic = self.aws_data.get(DATA_SECTION_DYNAMIC) or {}
+        iot_response = dynamic.get(DYNAMIC_TYPE_IOT_RESPONSE)
+
+        # The power supply can publish an iotResponse with no content.
+        if not isinstance(iot_response, dict):
+            return {ATTR_STATE: None}
+
         temperature_int = iot_response.get(DYNAMIC_DESCRIPTION_TEMPERATURE)
 
         if temperature_int is None:

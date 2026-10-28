@@ -150,3 +150,15 @@ async def test_missing_family_enables_automatic_temperature_requests():
 
     await client.update_api_data(None)
     assert client._robot_family_missing is False
+
+
+def test_empty_iot_response_is_unknown():
+    """An iotResponse message without content must not break the sensor."""
+    coordinator = MyDolphinPlusCoordinator.__new__(MyDolphinPlusCoordinator)
+    coordinator._aws_client = SimpleNamespace(
+        data={DATA_SECTION_DYNAMIC: {DYNAMIC_TYPE_IOT_RESPONSE: None}}
+    )
+    assert coordinator._get_temperature_data(None) == {ATTR_STATE: None}
+
+    coordinator._aws_client.data = {DATA_SECTION_DYNAMIC: None}
+    assert coordinator._get_temperature_data(None) == {ATTR_STATE: None}
