@@ -183,3 +183,50 @@ def test_automatic_temperature_requests_are_limited(monkeypatch):
     assert not client._is_temperature_request_due()
     now[0] += 570
     assert client._is_temperature_request_due()
+
+
+def test_report_time_uses_power_supply_measurement_time():
+    """A resent reading keeps the time the power supply measured it."""
+    client = AWSClient.__new__(AWSClient)
+    client._data = {"systemState": {"timeZone": 660}}
+    client._dynamic_message_handlers = {}
+    client._on_data_update_callback = lambda: None
+
+    # 21:56:16 local (UTC+11) on 28 October 2026, sent as local-time epoch.
+    client._on_dynamic_content_received(
+        {
+            DYNAMIC_TYPE: DYNAMIC_TYPE_IOT_RESPONSE,
+            DYNAMIC_CONTENT: {
+                DYNAMIC_DESCRIPTION_TEMPERATURE: 241,
+                "timeStamp": 1793224576,
+            },
+        }
+    )
+
+    assert client.data[WS_TEMPERATURE_LAST_UPDATE] == "2026-10-28T10:56:16+00:00"
+
+
+def test_report_time_falls_back_to_receive_time():
+    """Missing time zone or a future device clock uses the receive time."""
+    from datetime import UTC, datetime, timedelta
+
+    client = AWSClient.__new__(AWSClient)
+    client._data = {}
+    client._dynamic_message_handlers = {}
+    client._on_data_update_callback = lambda: None
+    future = int((datetime.now(UTC) + timedelta(days=2)).timestamp())
+
+    for system_state, device_time in (({}, 1793224576), ({"timeZone": 0}, future)):
+        client._data = {"systemState": system_state}
+        before = datetime.now(UTC)
+        client._on_dynamic_content_received(
+            {
+                DYNAMIC_TYPE: DYNAMIC_TYPE_IOT_RESPONSE,
+                DYNAMIC_CONTENT: {
+                    DYNAMIC_DESCRIPTION_TEMPERATURE: 241,
+                    "timeStamp": device_time,
+                },
+            }
+        )
+        reported = datetime.fromisoformat(client.data[WS_TEMPERATURE_LAST_UPDATE])
+        assert before <= reported <= datetime.now(UTC)

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import asyncio
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timedelta
 import json
 import logging
 import os
@@ -52,6 +52,7 @@ from ..common.consts import (
     DATA_STATE_DESIRED,
     DATA_STATE_REPORTED,
     DATA_SYSTEM_STATE_PWS_STATE,
+    DATA_SYSTEM_STATE_TIME_ZONE,
     DEFAULT_ENABLE,
     DEFAULT_LED_INTENSITY,
     DEFAULT_TIME_PART,
@@ -62,6 +63,7 @@ from ..common.consts import (
     DYNAMIC_CONTENT_REMOTE_CONTROL_MODE,
     DYNAMIC_CONTENT_SERIAL_NUMBER,
     DYNAMIC_CONTENT_SPEED,
+    DYNAMIC_CONTENT_TIMESTAMP,
     DYNAMIC_DESCRIPTION,
     DYNAMIC_DESCRIPTION_JOYSTICK,
     DYNAMIC_DESCRIPTION_TEMPERATURE,
@@ -492,15 +494,43 @@ class AWSClient:
             and isinstance(content, dict)
             and content.get(DYNAMIC_DESCRIPTION_TEMPERATURE) is not None
         ):
-            self.data[WS_TEMPERATURE_LAST_UPDATE] = datetime.now(
-                timezone.utc
-            ).isoformat()
+            self.data[WS_TEMPERATURE_LAST_UPDATE] = self._get_temperature_measured_at(
+                content
+            )
 
         if handler is not None:
             handler(message)
 
         # Trigger callback for real-time updates
         self._on_data_update_callback()
+
+    def _get_temperature_measured_at(self, content: dict) -> str:
+        """Return when the power supply measured the reported temperature.
+
+        The power supply can resend an earlier reading, so its own timestamp is
+        more useful than the time the message arrived. That timestamp is in the
+        power supply's local time, offset by the shadow's timeZone in minutes.
+        """
+        received_at = datetime.now(UTC)
+        device_timestamp = content.get(DYNAMIC_CONTENT_TIMESTAMP)
+        system_state = self.data.get(DATA_SECTION_SYSTEM_STATE) or {}
+        time_zone = system_state.get(DATA_SYSTEM_STATE_TIME_ZONE)
+
+        if (
+            isinstance(device_timestamp, (int, float))
+            and not isinstance(device_timestamp, bool)
+            and device_timestamp > 0
+            and isinstance(time_zone, (int, float))
+            and not isinstance(time_zone, bool)
+        ):
+            measured_at = datetime.fromtimestamp(
+                device_timestamp - time_zone * 60, UTC
+            )
+
+            if measured_at <= received_at + timedelta(minutes=5):
+                return measured_at.isoformat()
+
+        return received_at.isoformat()
 
     def _on_pws_request_message(self, message: dict):
         direction = message.get(DYNAMIC_CONTENT_DIRECTION)
