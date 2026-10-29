@@ -126,6 +126,7 @@ DEFAULT_TIME_PART = 255
 
 UPDATE_API_INTERVAL = timedelta(hours=1)
 UPDATE_WS_INTERVAL = timedelta(seconds=30)
+TEMPERATURE_REQUEST_INTERVAL = timedelta(minutes=10)
 API_RECONNECT_INTERVAL = timedelta(minutes=1)
 WS_RECONNECT_INTERVAL = timedelta(minutes=1)
 

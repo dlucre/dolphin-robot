@@ -6,7 +6,7 @@ import json
 import logging
 import os
 import sys
-from time import sleep
+from time import monotonic, sleep
 from typing import Any, Callable
 
 import aiofiles
@@ -71,6 +71,7 @@ from ..common.consts import (
     LED_MODE_BLINKING,
     MQTT_MESSAGE_ENCODING,
     SIGNAL_AWS_CLIENT_STATUS,
+    TEMPERATURE_REQUEST_INTERVAL,
     TOPIC_CALLBACK_ACCEPTED,
     TOPIC_CALLBACK_REJECTED,
     WS_DATA_DIFF,
@@ -112,6 +113,7 @@ class AWSClient:
             self._awsiot_id = awsiot_id
             self._robot_family = None
             self._robot_family_missing = False
+            self._last_temperature_request: float | None = None
 
             self._api_data = {}
             self._data = {}
@@ -446,7 +448,7 @@ class AWSClient:
                     if (
                         self._robot_family == RobotFamily.M700
                         or self._robot_family_missing
-                    ):
+                    ) and self._is_temperature_request_due():
                         try:
                             self.request_temperature()
                         except ValueError as ex:
@@ -644,6 +646,18 @@ class AWSClient:
         }
 
         self._send_dynamic_command(DYNAMIC_DESCRIPTION_TEMPERATURE, request_data)
+        self._last_temperature_request = monotonic()
+
+    def _is_temperature_request_due(self) -> bool:
+        """Limit automatic temperature requests; the button is not limited."""
+        last_request = getattr(self, "_last_temperature_request", None)
+
+        if last_request is None:
+            return True
+
+        elapsed = monotonic() - last_request
+
+        return elapsed >= TEMPERATURE_REQUEST_INTERVAL.total_seconds()
 
     def pickup(self):
         self.set_cleaning_mode(CleanModes.PICKUP)

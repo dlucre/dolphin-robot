@@ -100,7 +100,7 @@ The following errors can appear:
 | {Robot Name} Remote                  | Remote        | Provides virtual joystick control for manual robot navigation               | Features: Activity (Stop, Forward, Backward, Left, Right), Turn On, Turn Off                                              |
 | {Robot Name}                         | Vacuum        | Provides functionality of vacuum to the robot                               | Features: State, Fan Speed (Cleaning Mode), Return Home (Pickup), Turn On, Turn Off, Send Command (Schedule, Delay Clean) |
 
-M700 temperature controls also appear when the OTP profile omits the robot family. On a model that does not support temperature, the sensor remains unknown. Pressing **Refresh Temperature** requests a reading through the power supply without starting a cleaning cycle. The sensor's `temperature_last_reported` attribute records when a temperature response arrived; an unchanged value can still have a newer report time.
+M700 temperature controls also appear when the OTP profile omits the robot family. On a model that does not support temperature, the sensor remains unknown. Pressing **Refresh Temperature** requests a reading through the power supply without starting a cleaning cycle. The integration also requests a reading automatically at most every 10 minutes. The sensor's `temperature_last_reported` attribute records when a temperature response arrived; an unchanged value can still have a newer report time.
 
 ### Cleaning Modes
 

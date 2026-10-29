@@ -4,6 +4,8 @@
 
 - Add an on-demand temperature refresh button for M700 cleaners. An OTP profile with no robot family now exposes the temperature sensor and button; the sensor stays unknown until the robot reports a reading.
 - Request the M700 temperature automatically on each shadow poll when the OTP profile omits the robot family, so the reading returns after a restart without pressing the button.
+- Limit automatic M700 temperature requests to one every 10 minutes; the Refresh Temperature button still requests immediately.
+- Treat an `iotResponse` message without content as an unknown temperature instead of raising on every update.
 
 ## v1.0.26
 

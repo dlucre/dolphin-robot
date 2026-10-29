@@ -162,3 +162,24 @@ def test_empty_iot_response_is_unknown():
 
     coordinator._aws_client.data = {DATA_SECTION_DYNAMIC: None}
     assert coordinator._get_temperature_data(None) == {ATTR_STATE: None}
+
+
+def test_automatic_temperature_requests_are_limited(monkeypatch):
+    """Polling every 30 seconds should request temperature at most every 10 minutes."""
+    import custom_components.mydolphin_plus.managers.aws_client as aws_module
+
+    now = [1000.0]
+    monkeypatch.setattr(aws_module, "monotonic", lambda: now[0])
+    client = AWSClient.__new__(AWSClient)
+    client._config_manager = SimpleNamespace(
+        serial_number="robot-serial", motor_unit_serial="motor-serial"
+    )
+    client._send_dynamic_command = lambda description, payload: None
+    client._last_temperature_request = None
+
+    assert client._is_temperature_request_due()
+    client.request_temperature()
+    now[0] += 30
+    assert not client._is_temperature_request_due()
+    now[0] += 570
+    assert client._is_temperature_request_due()
